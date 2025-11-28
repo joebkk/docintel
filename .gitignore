@@ -1,0 +1,98 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Next.js (rag-backend)
+rag-backend/.next/
+rag-backend/out/
+rag-backend/.turbo
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+coverage/
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Docker
+.dockerignore
+
+# Temporal
+.temporal/
+
+# Parse cache
+data/parse-cache/
+
+# Agent system data
+agent-system/logs/
+agent-system/sessions/
+agent-system/data/
+
+# Prometheus & Grafana data
+infrastructure/prometheus/data/
+infrastructure/grafana/data/

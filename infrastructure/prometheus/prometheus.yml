@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'docintel-enterprise'
+
+scrape_configs:
+  # Agent System Metrics
+  - job_name: 'agent-system'
+    static_configs:
+      - targets: ['agent-system:8000']
+    metrics_path: '/metrics'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

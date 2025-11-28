@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # TypeScript RAG Backend
+  rag-backend:
+    build: ./rag-backend
+    container_name: docintel-rag
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-docurepo}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - LLAMA_CLOUD_API_KEY=${LLAMA_CLOUD_API_KEY}
+      - DO_SPACES_ENDPOINT=${DO_SPACES_ENDPOINT}
+      - DO_SPACES_REGION=${DO_SPACES_REGION}
+      - DO_SPACES_ACCESS_KEY_ID=${DO_SPACES_ACCESS_KEY_ID}
+      - DO_SPACES_SECRET_ACCESS_KEY=${DO_SPACES_SECRET_ACCESS_KEY}
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE}
+      - TEMPORAL_API_KEY=${TEMPORAL_API_KEY}
+    networks:
+      - docintel
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Python Agent System
+  agent-system:
+    build: ./agent-system
+    container_name: docintel-agents
+    ports:
+      - "8000:8000"
+    environment:
+      - RAG_API_URL=http://rag-backend:3000
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash-exp}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-docurepo}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENABLE_TRACING=${ENABLE_TRACING:-true}
+      - ENABLE_METRICS=${ENABLE_METRICS:-true}
+    depends_on:
+      rag-backend:
+        condition: service_healthy
+    networks:
+      - docintel
+    volumes:
+      - ./agent-system/logs:/app/logs
+      - ./agent-system/sessions:/app/sessions
+      - ./agent-system/data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Prometheus (Metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: docintel-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - docintel
+
+  # Grafana (Dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: docintel-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./infrastructure/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./infrastructure/grafana-dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - docintel
+
+  # Jaeger (Distributed Tracing)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: docintel-jaeger
+    ports:
+      - "16686:16686"  # UI
+      - "6831:6831/udp"  # Agent (thrift compact)
+      - "14268:14268"  # Collector HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - docintel
+
+networks:
+  docintel:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
