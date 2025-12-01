@@ -52,7 +52,7 @@ export class VectorStore {
    * @param key - S3 object key for the vector store file (default: "vector-store.json")
    */
   constructor(
-    bucket: string = process.env.VECTOR_STORE_BUCKET || "sv-vector-store-temp",
+    bucket: string = process.env.VECTOR_STORE_BUCKET || "demo-vector-store",
     key: string = "vector-store.json"
   ) {
     this.bucket = bucket;

@@ -5,23 +5,10 @@ services:
   rag-backend:
     build: ./rag-backend
     container_name: docintel-rag
+    env_file:
+      - ./rag-backend/.env
     ports:
       - "3000:3000"
-    environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - MONGODB_DATABASE=${MONGODB_DATABASE:-docurepo}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - LLAMA_CLOUD_API_KEY=${LLAMA_CLOUD_API_KEY}
-      - DO_SPACES_ENDPOINT=${DO_SPACES_ENDPOINT}
-      - DO_SPACES_REGION=${DO_SPACES_REGION}
-      - DO_SPACES_ACCESS_KEY_ID=${DO_SPACES_ACCESS_KEY_ID}
-      - DO_SPACES_SECRET_ACCESS_KEY=${DO_SPACES_SECRET_ACCESS_KEY}
-      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
-      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE}
-      - TEMPORAL_API_KEY=${TEMPORAL_API_KEY}
     networks:
       - docintel
     healthcheck:
@@ -35,18 +22,10 @@ services:
   agent-system:
     build: ./agent-system
     container_name: docintel-agents
+    env_file:
+      - ./agent-system/.env
     ports:
       - "8000:8000"
-    environment:
-      - RAG_API_URL=http://rag-backend:3000
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash-exp}
-      - MONGODB_URI=${MONGODB_URI}
-      - MONGODB_DATABASE=${MONGODB_DATABASE:-docurepo}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - ENABLE_TRACING=${ENABLE_TRACING:-true}
-      - ENABLE_METRICS=${ENABLE_METRICS:-true}
     depends_on:
       rag-backend:
         condition: service_healthy
@@ -86,7 +65,7 @@ services:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer

@@ -41,7 +41,8 @@ class ResearchAgent:
         Returns:
             Dict with research results, sources, and summary
         """
-        # Step 1: Query RAG system
+        # Query RAG system
+        # print(f"DEBUG: query={query}, mode={mode}")  # TODO: remove debug
         rag_result = await self.rag_tool.search_documents(
             query=query,
             mode=mode,

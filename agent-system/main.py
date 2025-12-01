@@ -15,7 +15,7 @@ from observability import (
     setup_logging,
     get_logger,
     setup_tracing,
-    get_metrics,
+    metrics_registry,
     update_active_sessions
 )
 
@@ -45,12 +45,23 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("starting_agent_system", service="docintel-agents")
 
-    try:
-        # Initialize memory systems
-        session_service = InMemorySessionService()
-        memory_bank = MemoryBank()
+    # Initialize in-memory session service (always available)
+    session_service = InMemorySessionService()
 
-        # Initialize agents
+    # Try to initialize MongoDB-based memory bank (optional)
+    try:
+        memory_bank = MemoryBank()
+        logger.info("memory_bank_initialized", status="success")
+    except Exception as e:
+        logger.warning(
+            "memory_bank_initialization_failed",
+            error=str(e),
+            message="Continuing without persistent memory bank"
+        )
+        memory_bank = None
+
+    # Initialize agents
+    try:
         orchestrator = OrchestratorAgent()
         research_agent = ResearchAgent()
         analysis_agent = AnalysisAgent()
@@ -63,7 +74,7 @@ async def lifespan(app: FastAPI):
             citation_agent
         )
 
-        logger.info("agent_system_started", status="success")
+        logger.info("agent_system_started", status="success", has_memory_bank=memory_bank is not None)
 
     except Exception as e:
         logger.error("agent_system_startup_failed", error=str(e), exc_info=True)
@@ -170,8 +181,9 @@ async def health_check():
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint."""
-    metrics_output, content_type = get_metrics()
-    return Response(content=metrics_output, media_type=content_type)
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    metrics_output = generate_latest(metrics_registry)
+    return Response(content=metrics_output, media_type=CONTENT_TYPE_LATEST)
 
 
 # Agent query endpoints
@@ -343,6 +355,9 @@ async def delete_session(session_id: str):
 @app.post("/memory")
 async def store_memory(request: MemoryRequest):
     """Store a memory in the Memory Bank."""
+    if memory_bank is None:
+        raise HTTPException(status_code=503, detail="Memory Bank not available (MongoDB connection failed)")
+
     try:
         memory = memory_bank.store_memory(
             content=request.content,
@@ -373,6 +388,9 @@ async def retrieve_memories(
     limit: int = 10
 ):
     """Retrieve memories from Memory Bank."""
+    if memory_bank is None:
+        raise HTTPException(status_code=503, detail="Memory Bank not available (MongoDB connection failed)")
+
     try:
         memories = memory_bank.retrieve_memories(
             user_id=user_id,
@@ -405,6 +423,9 @@ async def retrieve_memories(
 @app.get("/memory/stats")
 async def get_memory_stats(user_id: Optional[str] = None):
     """Get Memory Bank statistics."""
+    if memory_bank is None:
+        raise HTTPException(status_code=503, detail="Memory Bank not available (MongoDB connection failed)")
+
     try:
         stats = memory_bank.get_memory_stats(user_id=user_id)
         return stats

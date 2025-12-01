@@ -27,7 +27,6 @@ async function startWorker() {
     "MONGODB_URI",
     "LLAMA_CLOUD_API_KEY",
     "OPENAI_API_KEY",
-    "DOCS_BACKEND_API_KEY",
   ];
 
   const missing = requiredEnvVars.filter((key) => !process.env[key]);

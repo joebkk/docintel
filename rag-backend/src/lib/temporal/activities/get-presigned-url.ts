@@ -15,55 +15,33 @@ export async function getPresignedUrl(
 ): Promise<GetPresignedUrlOutput> {
   const { filename } = input;
 
-  console.log(`[getPresignedUrl] Requesting URL for: ${filename}`);
+  console.log(`[getPresignedUrl] Generating mock URL for: ${filename}`);
 
   try {
-    const backendApiKey = process.env.DOCS_BACKEND_API_KEY;
-    const backendUrl = process.env.DOCS_BACKEND_URL || "https://docs-backend.sunventure.com";
+    // For demo purposes, return mock presigned URL data
+    // In production, this would integrate with your storage solution (S3, DO Spaces, etc.)
 
-    if (!backendApiKey) {
-      throw new Error("DOCS_BACKEND_API_KEY not configured");
-    }
+    const mockPresignedUrl = `https://demo-storage.example.com/documents/${encodeURIComponent(filename)}?expires=3600`;
 
-    // URL encode the filename
-    const encodedFilename = encodeURIComponent(filename);
-    const url = `${backendUrl}/api/files/do/signed/${encodedFilename}`;
+    const mockMetadata = {
+      contentType: "application/pdf",
+      contentLength: 1024 * 100, // 100KB mock size
+      lastModified: new Date().toISOString(),
+      etag: `"${Date.now()}"`, // Simple mock etag
+    };
 
-    console.log(`[getPresignedUrl] Calling: ${url}`);
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-api-key": backendApiKey,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Backend API error (${response.status}): ${errorText}`
-      );
-    }
-
-    const data = await response.json();
-
-    console.log(`[getPresignedUrl] Success:`, {
-      etag: data.metadata?.etag,
-      size: data.metadata?.contentLength,
-      urlExpires: data.urlExpiresAt,
+    console.log(`[getPresignedUrl] Mock URL generated:`, {
+      filename,
+      size: mockMetadata.contentLength,
+      type: mockMetadata.contentType,
     });
 
     return {
-      presignedUrl: data.presignedUrl,
-      metadata: {
-        contentType: data.metadata.contentType,
-        contentLength: data.metadata.contentLength,
-        lastModified: data.metadata.lastModified,
-        etag: data.metadata.etag,
-      },
+      presignedUrl: mockPresignedUrl,
+      metadata: mockMetadata,
     };
   } catch (error: any) {
     console.error(`[getPresignedUrl] Error:`, error);
-    throw new Error(`Failed to get presigned URL: ${error.message}`);
+    throw new Error(`Failed to generate presigned URL: ${error.message}`);
   }
 }

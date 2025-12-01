@@ -88,15 +88,17 @@ class OrchestratorAgent:
             execution_pattern=execution_pattern
         )
 
-        # Step 1: Decompose user query into sub-tasks
+        # Decompose query into sub-tasks
+        # TODO: cache decompositions for similar queries
         decomposition = await self._decompose_query(user_query)
 
-        # Step 2: Execute based on pattern
+        # Execute based on pattern
         if execution_pattern == "sequential":
             result = await self._execute_sequential(workflow, decomposition)
         elif execution_pattern == "parallel":
             result = await self._execute_parallel(workflow, decomposition)
         elif execution_pattern == "loop":
+            # FIXME: loop pattern sometimes exceeds max iterations unnecessarily
             result = await self._execute_loop(workflow, decomposition)
         else:
             raise ValueError(f"Unknown execution pattern: {execution_pattern}")

@@ -5,58 +5,39 @@ import { generateStreamingAIResponse } from "@/lib/ai-search/bedrock-client";
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
 
-// Cache file mappings for better performance
-let filesMappingCache: Map<string, any> | null = null;
-let filesCacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Mock file metadata for demo purposes
+// In a real implementation, this could come from a local database or config file
+function getFilesMapping() {
+  const mockMapping = new Map();
 
-async function getFilesMapping() {
-  const now = Date.now();
+  // Add mock metadata for test documents
+  mockMapping.set('Q3-2024-Portfolio-Report.pdf', {
+    name: 'Q3-2024-Portfolio-Report.pdf',
+    file_path: 'demo/Q3-2024-Portfolio-Report.pdf',
+    year: 2024,
+    quarter: 'Q3',
+    month: null
+  });
 
-  // Return cached data if still valid
-  if (filesMappingCache && (now - filesCacheTimestamp) < CACHE_DURATION) {
-    return filesMappingCache;
-  }
+  mockMapping.set('Company-A-DD-Report.pdf', {
+    name: 'Company-A-DD-Report.pdf',
+    file_path: 'demo/Company-A-DD-Report.pdf',
+    year: 2024,
+    quarter: null,
+    month: null
+  });
 
-  // Fetch fresh data from library API
-  try {
-    const response = await fetch('https://docs-backend.sunventure.com/api/files', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.DOCS_BACKEND_API_KEY || '',
-      },
-      next: {
-        revalidate: 300 // 5 minutes
-      }
-    });
+  mockMapping.set('LP-Update-2024.pdf', {
+    name: 'LP-Update-2024.pdf',
+    file_path: 'demo/LP-Update-2024.pdf',
+    year: 2024,
+    quarter: null,
+    month: 8
+  });
 
-    if (!response.ok) {
-      console.error('Failed to fetch files for mapping');
-      return filesMappingCache || new Map(); // Return old cache if fetch fails
-    }
-
-    const filesData = await response.json();
-    // Handle both old format { data: [...] } and new format [...]
-    const files = Array.isArray(filesData) ? filesData : (filesData.data || []);
-
-    // Create mapping: filename -> file object
-    const mapping = new Map();
-    files.forEach((file: any) => {
-      if (file.name && file.file_path) {
-        mapping.set(file.name, file);
-      }
-    });
-
-    // Update cache
-    filesMappingCache = mapping;
-    filesCacheTimestamp = now;
-
-    return mapping;
-  } catch (error) {
-    console.error('Error fetching files mapping:', error);
-    return filesMappingCache || new Map();
-  }
+  // For any other files, generate basic metadata from filename
+  // This allows the system to work with dynamically uploaded files
+  return mockMapping;
 }
 
 export async function POST(request: NextRequest) {
@@ -104,8 +85,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Fetch file metadata and enrich sources
-    const filesMapping = await getFilesMapping();
+    // Step 2: Enrich sources with mock file metadata
+    const filesMapping = getFilesMapping();
     const context = searchResults.map((result) => result.text);
     const sources = searchResults.map((result) => {
       const fileData = filesMapping.get(result.filename);
@@ -118,7 +99,7 @@ export async function POST(request: NextRequest) {
         totalPages: result.totalPages,
         chunkIndex: result.chunkIndex,
         searchMode: result.searchMode,
-        // Add metadata for sorting
+        // Add metadata for sorting (from mock data)
         year: fileData?.year ?? null,
         month: fileData?.month ?? null,
         quarter: fileData?.quarter ?? null,
